@@ -2,7 +2,7 @@
 """
 Created on Fri Apr 18 19:49:27 2014
 
-@author: Z080465
+@author: Satyajit Gupte
 """
 
 import os

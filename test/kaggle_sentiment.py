@@ -2,7 +2,7 @@
 """
 Created on Sat Apr 19 10:33:24 2014
 
-@author: Z080465
+@author: Satyajit Gupte
 """
 
 import os
@@ -25,7 +25,7 @@ trainfile.next()
 testfile = open(sys.argv[2],'r')
 testfile.next()
 
-NB_t = NaiveBayesTrain()
+NB_t = NaiveBayesTrain(num_features=100)
 
 def ngrams(tokens, n):
     return [' '.join(tokens[i:(i+n)]) for i in range(len(tokens) - (n-1))]
@@ -54,7 +54,7 @@ for line in testfile:
     text = toks[2]
     tokens =re.findall(r"[\w']+|[.,!?;]", text.lower())
     tokens = ng.tokensWithNeg(tokens)
-    label, score =  NB_c.classify2(ngrams(tokens,2))
+    label, score =  NB_c.classify(ngrams(tokens,2))
     print "%s,%s"%(phrase_id,label)
 
 

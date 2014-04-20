@@ -10,11 +10,13 @@ from collections import defaultdict
 from operator import itemgetter
 
 class NaiveBayesTrain:
-    def __init__(self):
+    def __init__(self, num_features, min_df=10):
         self.priors = {}
         self.condprobs = defaultdict(lambda: defaultdict(float))
         self.class_label_counts = defaultdict(int)
         self.token_counts = defaultdict(lambda: defaultdict(int))
+        self.num_features = num_features
+        self.min_df = min_df
 
     def addDocument(self, tokens, class_label):
         tokens = set(tokens)
@@ -38,7 +40,7 @@ class NaiveBayesTrain:
         ig = self._entropy(pos,neg)-(p_word*self._entropy(tp,fp)+(1-p_word)*self._entropy(fn,tn))
         return ig
 
-    def selectFeatures(self, token_counts):
+    def _selectFeatures(self, token_counts):
         token_infogains = defaultdict(lambda: defaultdict(float))
         for token, class_counts in token_counts.items():
             max_infogain = 0
@@ -47,13 +49,12 @@ class NaiveBayesTrain:
                 N2 = sum(self.class_label_counts[x] for x in self.class_label_counts.keys() if x != class_label)
                 df1 = class_count
                 df2 = sum(token_counts[token][x] for x in self.class_label_counts.keys() if x!= class_label)
-                if df1 + df2 > 10:
+                if df1 + df2 > self.min_df:
                     ig = self._informationGain(N1, N2, df1, df2)
                     if ig > max_infogain:
                         max_infogain = ig
-                #print token, class_label, df1, df2, ig
             token_infogains[token] =  max_infogain
-        sorted_token_infogains = sorted(token_infogains.items(), key = itemgetter(1), reverse = True)[:500]
+        sorted_token_infogains = sorted(token_infogains.items(), key = itemgetter(1), reverse = True)[:self.num_features]
         return dict(sorted_token_infogains)
 
     def train(self):
@@ -71,13 +72,14 @@ class NaiveBayesTrain:
                 except KeyError:
                     token_counts[token][class_label] = 0
 
-        selected_tokens = self.selectFeatures(token_counts)
+        selected_tokens = self._selectFeatures(token_counts)
 
         #calculate conditional probabilities
         for token in selected_tokens.keys():
             for class_label in self.class_label_counts.keys():
                 self.condprobs[token][class_label] = (token_counts[token][class_label] + 1)/(self.class_label_counts[class_label] +2)
         return self.priors, self.condprobs
+
 
 class NaiveBayesClassify:
     def __init__(self, priors, condprobs):
@@ -90,24 +92,22 @@ class NaiveBayesClassify:
         for class_label, prior in self.priors.items():
             cat_score = 0
             cat_score+=math.log(prior)
-            for token in tokens:
-                if token in self.condprobs:
-                    cat_score+=math.log(self.condprobs[token][class_label])
-            scores.append((class_label, cat_score))
-        sorted_scores = sorted(scores, key = lambda tup:    tup[1], reverse=True)
-        return sorted_scores[0]
-
-    def classify2(self, tokens):
-        scores = []
-        tokens = set(tokens)
-        for class_label, prior in self.priors.items():
-            cat_score = 0
-            cat_score+=math.log(prior)
             for t in self.condprobs.keys():
                 if t in tokens:
                     cat_score+=math.log(self.condprobs[t][class_label])
                 else:
                     cat_score+=math.log(1-self.condprobs[t][class_label])
             scores.append((class_label, cat_score))
-        sorted_scores = sorted(scores, key = lambda tup:    tup[1], reverse=True)
-        return sorted_scores[0]
+        return max(scores, key = itemgetter(1))
+
+    def classify2(self, tokens): # Faster but not exact scoring implementation
+        scores = []
+        tokens = set(tokens)
+        for class_label, prior in self.priors.items():
+            cat_score = 0
+            cat_score+=math.log(prior)
+            for token in tokens:
+                if token in self.condprobs:
+                    cat_score+=math.log(self.condprobs[token][class_label])
+            scores.append((class_label, cat_score))
+        return max(scores, key = itemgetter(1))
