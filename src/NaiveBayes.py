@@ -2,6 +2,8 @@
 """
 Naive Bayes Classifer for Text
 Based on http://nlp.stanford.edu/IR-book/html/htmledition/the-bernoulli-model-1.html
+
+Feature Selection sone using Information Gain
 @author: Satyajit Gupte
 """
 from __future__ import division
@@ -100,7 +102,7 @@ class NaiveBayesClassify:
             scores.append((class_label, cat_score))
         return max(scores, key = itemgetter(1))
 
-    def classify2(self, tokens): # Faster but not exact scoring implementation
+    def classify_fast(self, tokens): # Faster but not exact scoring implementation
         scores = []
         tokens = set(tokens)
         for class_label, prior in self.priors.items():
