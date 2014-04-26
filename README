@@ -1,0 +1,6 @@
+Naive Bayes Text Classifier in Python. 
+No dependency on numpy or scipy.
+
+Features:
+1. Feature Selection using Information Gain as selection metric
+2. Word negations as features. Often useful for sentiment classification tasks
